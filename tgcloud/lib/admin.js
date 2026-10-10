@@ -3,6 +3,8 @@ import { and, eq, desc, sql } from 'sdk/db';
 import { users, payments } from '../schema.js';
 import { refreshProfile } from './users.js';
 import { getCurrentTime, currentMinute } from './time.js';
+import { PAYMENTS_ENABLED, REQUIRED_CHANNEL } from './config.js';
+import { kvGet } from './kv.js';
 
 // /stats — foydalanuvchilar, Premium, tushum va soat kechikishi.
 export async function sendStats(chatId) {
@@ -16,6 +18,9 @@ export async function sendStats(chatId) {
   const all = await db.get(sql`SELECT count(*) AS n, coalesce(sum(stars), 0) AS stars FROM payments WHERE refunded = 0`);
   const month = await db.get(sql`SELECT count(*) AS n, coalesce(sum(stars), 0) AS stars FROM payments
     WHERE refunded = 0 AND created_at >= unixepoch('now', 'start of month')`);
+  // Oxirgi bir soatdagi obuna tekshiruvi xatosi (bot kanalda admin emas va h.k.)
+  const [errAt, ...errText] = String((await kvGet('sub_error')) || '').split('|');
+  const subError = Number(errAt) > Math.floor(Date.now() / 1000) - 3600 ? errText.join('|') : null;
   const lag = await db.get(sql`SELECT max(${currentMinute()} - last_minute) AS lag FROM users
     WHERE connection_id IS NOT NULL AND clock_enabled = 1`);
 
@@ -25,11 +30,14 @@ export async function sendStats(chatId) {
       '📊 Statistika\n\n' +
       `Foydalanuvchilar: ${u.total}\n` +
       `Ulangan: ${u.connected ?? 0}, soat yoqilgan: ${u.active ?? 0}\n` +
-      `Premium: ${u.premium ?? 0}\n` +
+      (PAYMENTS_ENABLED ? `Premium: ${u.premium ?? 0}\n` : '') +
       `Xatoli profillar: ${u.errors ?? 0}\n` +
       `Eng katta kechikish: ${lag?.lag ?? 0} daq\n\n` +
-      `Shu oy: ${month.n} to'lov, ${month.stars} ⭐\n` +
-      `Jami: ${all.n} to'lov, ${all.stars} ⭐\n\n` +
+      (PAYMENTS_ENABLED
+        ? `Shu oy: ${month.n} to'lov, ${month.stars} ⭐\n` + `Jami: ${all.n} to'lov, ${all.stars} ⭐\n\n`
+        : '') +
+      (REQUIRED_CHANNEL ? `📢 Majburiy obuna: ${REQUIRED_CHANNEL.chatId}\n` : '') +
+      (subError ? `⚠️ Obuna tekshiruvi xatosi: ${subError}\n(Botni kanalga admin qiling)\n\n` : '\n') +
       `Server vaqti (Toshkent): ${getCurrentTime().full}`,
   });
 }

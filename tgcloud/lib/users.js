@@ -1,7 +1,7 @@
 import { api, db, BotApiError } from 'sdk';
 import { eq, sql } from 'sdk/db';
 import { users } from '../schema.js';
-import { SWEEP_LIMIT } from './config.js';
+import { SWEEP_LIMIT, PAYMENTS_ENABLED } from './config.js';
 import { getCurrentTime, currentMinute, nowSec, findZone, DEFAULT_TZ } from './time.js';
 
 export const DEFAULT_NAME_FORMAT = '{name} | 🕒 {time}';
@@ -10,7 +10,8 @@ export const DEFAULT_BIO_FORMAT = '🕒 {date} {time} | {name}';
 // Ulanish endi yaroqsiz — uni o'chirib qo'yamiz
 const DEAD_CONNECTION = /BUSINESS_CONNECTION_INVALID|BUSINESS_CONNECTION_NOT_ALLOWED|business connection not found|BOT_BUSINESS_MISSING/i;
 
-export const isPremium = (u) => Boolean(u) && u.premiumUntil > nowSec();
+// To'lovlar o'chiq bo'lsa, Premium imkoniyatlari hamma uchun ochiq.
+export const isPremium = (u) => !PAYMENTS_ENABLED || (Boolean(u) && u.premiumUntil > nowSec());
 
 export function getUser(tgId) {
   return db.select().from(users).where(eq(users.tgId, tgId)).get();

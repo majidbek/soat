@@ -6,6 +6,8 @@ import { getOrCreateUser, isPremium, refreshProfile, wake, DEFAULT_NAME_FORMAT, 
 import { sendMenu } from '../lib/menu.js';
 import { sendPremiumOffer, handleSuccessfulPayment } from '../lib/premium.js';
 import { sendStats, refund } from '../lib/admin.js';
+import { PAYMENTS_ENABLED } from '../lib/config.js';
+import { isSubscribed, subscribeMessage } from '../lib/subscription.js';
 
 const FORMAT_HELP =
   "O'zgaruvchilar: {name} {time} {date} {full} {weekday}\n" +
@@ -44,7 +46,10 @@ async function handle(message) {
   }
 
   const user = await getOrCreateUser(message.from);
-  if (cmd === '/premium') return sendPremiumOffer(message.chat.id);
+  if (!(await isSubscribed(message.from.id))) {
+    return api.sendMessage({ chat_id: message.chat.id, ...subscribeMessage() });
+  }
+  if (cmd === '/premium' && PAYMENTS_ENABLED) return sendPremiumOffer(message.chat.id);
   if (cmd === '/nameformat') return setFormat(message, user, 'nameFormat', arg);
   if (cmd === '/bioformat') return setFormat(message, user, 'bioFormat', arg);
   return sendMenu(message.chat.id, user);

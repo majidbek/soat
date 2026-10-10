@@ -6,13 +6,17 @@ Telegram Business orqali ishlaydi. Bot, baza va to'lovlar to'liq
 
 ## Imkoniyatlar
 
-| Bepul | ⭐ Premium — 50 Stars/oy (obuna) |
-|---|---|
-| Ismdagi soat | Biodagi soat |
-| 12 ta vaqt mintaqasi | +12 mintaqa (jami 24) |
-| Standart format | O'z formati: `/nameformat`, `/bioformat` |
+Hammasi bepul: ismdagi va biodagi soat, 24 ta vaqt mintaqasi, o'z formati (`/nameformat`, `/bioformat`).
 
-Admin (`lib/config.js` → `ADMIN_IDS`): `/stats`, `/refund [charge_id]`.
+**Majburiy obuna:** botdan foydalanish uchun [@Bandlik_Markazi](https://t.me/Bandlik_Markazi)
+kanaliga obuna bo'lish shart (`lib/config.js` → `REQUIRED_CHANNEL`).
+⚠️ Bot shu kanalda **admin** bo'lishi kerak, aks holda Telegram obunani tekshirishga ruxsat
+bermaydi. Bunda bot hammaga ochiq ishlaydi va `/stats` ogohlantiradi.
+
+Telegram Stars (Premium obuna) kodi saqlangan, lekin o'chiq: `lib/config.js` →
+`PAYMENTS_ENABLED = true` qilinsa, bio/format/qo'shimcha mintaqalar 50 ⭐/oy Premium'ga o'tadi.
+
+Admin (`lib/config.js` → `ADMIN_IDS`, obunadan ozod): `/stats`, `/refund [charge_id]`.
 
 ## ⚠️ Cron haqida
 

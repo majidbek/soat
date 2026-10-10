@@ -2,6 +2,7 @@ import { api } from 'sdk';
 import { TIMEZONES, getCurrentTime } from './time.js';
 import { isPremium, effectiveSettings } from './users.js';
 import { PRODUCTS } from './products.js';
+import { PAYMENTS_ENABLED } from './config.js';
 
 const fmtDate = (sec) => {
   const d = new Date(sec * 1000);
@@ -18,7 +19,8 @@ export function menuText(u) {
     '🕒 <b>Soatli Profil</b>\n\n' +
     `Profilga ulanish: ${u.connectionId ? '✅ Bor' : "❌ Yo'q"}\n` +
     `Vaqt mintaqasi: ${s.timeZone}\n` +
-    `Premium: ${premium ? `✨ ${fmtDate(u.premiumUntil)} gacha` : "yo'q"}\n\n` +
+    (PAYMENTS_ENABLED ? `Premium: ${premium ? `✨ ${fmtDate(u.premiumUntil)} gacha` : "yo'q"}\n` : '') +
+    '\n' +
     `📅 ${t.date}  🕐 ${t.time}`;
 
   if (!u.connectionId) {
@@ -44,7 +46,7 @@ export function mainKeyboard(u) {
     ],
     [{ text: '🌍 Vaqt mintaqasi', callback_data: 'show_tz' }],
   ];
-  if (!premium) rows.push([{ text: `⭐ Premium — ${PRODUCTS.premium.stars} ⭐/oy`, callback_data: 'buy_premium' }]);
+  if (PAYMENTS_ENABLED && !premium) rows.push([{ text: `⭐ Premium — ${PRODUCTS.premium.stars} ⭐/oy`, callback_data: 'buy_premium' }]);
   if (!u.connectionId) rows.push([{ text: '🔗 Akkauntga ulash', url: 'tg://settings' }]);
   return { inline_keyboard: rows };
 }

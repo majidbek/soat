@@ -44,7 +44,7 @@ export const payments = table('payments', {
   chargeIdx: uniqueIndex('uidx_payments_charge').on(t.chargeId),
 }));
 
-// Kalit-qiymat (hozircha ishlatilmaydi; jadval bazada yaratilgan).
+// Kalit-qiymat: xizmat ma'lumotlari (masalan, obuna tekshiruvi xatosi).
 export const kv = table('kv', {
   key:       text('key').primaryKey(),
   value:     text('value'),

@@ -5,12 +5,24 @@ import { getOrCreateUser, getUser, isPremium, refreshProfile, wake } from '../li
 import { editMenu } from '../lib/menu.js';
 import { sendPremiumOffer } from '../lib/premium.js';
 import { TIMEZONES } from '../lib/time.js';
+import { isSubscribed, subscribeMessage } from '../lib/subscription.js';
+import { PAYMENTS_ENABLED } from '../lib/config.js';
 
 async function handle(cb) {
   const data = cb.data || '';
   const chatId = cb.message?.chat?.id ?? cb.from.id;
   const messageId = cb.message?.message_id;
   let user = await getOrCreateUser(cb.from);
+
+  if (!(await isSubscribed(cb.from.id))) {
+    await api.answerCallbackQuery({
+      callback_query_id: cb.id,
+      text: "❌ Siz hali kanalga obuna bo'lmagansiz.",
+      show_alert: true,
+    });
+    if (data !== 'check_sub') await api.sendMessage({ chat_id: chatId, ...subscribeMessage() });
+    return;
+  }
   const premium = isPremium(user);
   const set = (fields) => db.update(users).set(fields).where(eq(users.tgId, user.tgId)).run();
 
@@ -35,8 +47,10 @@ async function handle(cb) {
       alert = on ? '✅ Bio yoqildi' : "❌ Bio o'chirildi";
       if (on && !user.clockEnabled) alert += "\n\nBio ishlashi uchun «Ismga» ham yoqilgan bo'lishi kerak.";
     }
-  } else if (data === 'buy_premium') {
+  } else if (data === 'buy_premium' && PAYMENTS_ENABLED) {
     await sendPremiumOffer(chatId);
+  } else if (data === 'check_sub') {
+    toast = '✅ Rahmat! Obuna tasdiqlandi.';
   } else if (data === 'show_tz') {
     showTimezones = true;
   } else if (data.startsWith('tz_')) {
