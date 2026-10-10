@@ -42,6 +42,9 @@ jobs:
         run: npx tgcloud webhook --no-pager || true
       - name: Bot tokenini heartbeat uchun saqlash
         if: env.BOT_TOKEN != ''
-        run: npx tgcloud run endpoints/admin "{ action: 'setToken', token: '$BOT_TOKEN' }" --ctx "$ADMIN_CTX" > /dev/null
+        run: |
+          npx tgcloud run endpoints/admin "{ action: 'setToken', token: '$BOT_TOKEN' }" --ctx "$ADMIN_CTX" > /dev/null
+          echo "Token saqlandi"
       - name: Runtime diagnostikasi
-        run: npx tgcloud run endpoints/admin '{}' --ctx "$ADMIN_CTX"
+        run: |
+          npx tgcloud run endpoints/admin '{}' --ctx "$ADMIN_CTX"
