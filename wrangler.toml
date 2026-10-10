@@ -1,0 +1,27 @@
+name = "soat-bot"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Har daqiqada ism/bio dagi soatni yangilash
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "soat"
+# `npx wrangler d1 create soat` buyrug'i bergan ID ni shu yerga qo'ying
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# Ko'p foydalanuvchini parallel bo'laklarga bo'lish uchun worker o'zini chaqiradi
+[[services]]
+binding = "SELF"
+service = "soat-bot"
+
+[vars]
+# Bitta bo'lakdagi foydalanuvchilar soni (har biri ≤2 Telegram so'rov).
+# Bepul tarifda 1 so'rovga 50 subrequest limiti bor → 20 xavfsiz.
+BATCH_SIZE = "20"
+
+# Maxfiy qiymatlar (wrangler secret put ...):
+#   BOT_TOKEN       — @BotFather tokeni
+#   WEBHOOK_SECRET  — ixtiyoriy uzun tasodifiy satr (webhook va /setup himoyasi)
