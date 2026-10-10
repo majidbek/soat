@@ -12,19 +12,16 @@ Telegram Business orqali ishlaydi. Bot, baza va to'lovlar to'liq
 | 12 ta vaqt mintaqasi | +12 mintaqa (jami 24) |
 | Standart format | O'z formati: `/nameformat`, `/bioformat` |
 
-Admin (`lib/config.js` → `ADMIN_IDS`): `/stats`, `/refund [charge_id]`, `/hb [on|off]`.
+Admin (`lib/config.js` → `ADMIN_IDS`): `/stats`, `/refund [charge_id]`.
 
 ## ⚠️ Cron haqida
 
-Serverless'da cron/taymer yo'q. Soat shunday yangilanadi:
-
-1. **Har qanday update kelganda** (`lib/users.js` → `wake`): ulangan foydalanuvchilarning
-   chatlariga kelgan har bir xabar botni uyg'otadi va shu daqiqada yangilanmagan profillar
-   yangilanadi. Kunduzi deyarli har daqiqa; xabar kam bo'lsa — kechikadi.
-2. **Heartbeat (tajriba)** (`lib/heartbeat.js`): `endpoints/tick` o'zini har daqiqada qayta
-   chaqiradi. `setTimeout` va o'z manzilini chaqirish platformada ishlasagina ishlaydi.
-   Ishlamasa, o'zi to'xtaydi; 1-usul baribir ishlayveradi. `/hb on` bilan yoqiladi,
-   `/stats` da holati ko'rinadi.
+Serverless'da cron ham, `setTimeout` ham yo'q (deploy diagnostikasi: `timers: false`).
+Shuning uchun soat **har qanday update kelganda** yangilanadi (`lib/users.js` → `wake`):
+ulangan foydalanuvchilarning chatlariga kelgan har bir xabar botni uyg'otadi va shu daqiqada
+hali yangilanmagan profillar (bir uyg'onishda 25 tagacha) yangilanadi. Xabar ko'p bo'lsa soat
+deyarli har daqiqa yuradi; xabar kam bo'lgan paytda kechikadi. `/stats` dagi
+«Eng katta kechikish» shuni ko'rsatadi.
 
 ## Tuzilma
 
@@ -35,10 +32,8 @@ tgcloud/handlers/callback_query.js      menyu tugmalari
 tgcloud/handlers/business_connection.js ulanish / uzish / ruxsatlar
 tgcloud/handlers/business_message.js    (+ edited_, deleted_) — botni uyg'otadi
 tgcloud/handlers/pre_checkout_query.js  to'lovdan oldingi tekshiruv
-tgcloud/endpoints/tick.js               heartbeat zanjiri
-tgcloud/endpoints/ping.js               heartbeat auth tekshiruvi
-tgcloud/endpoints/admin.js              diagnostika, bot tokenini saqlash (Actions)
-tgcloud/lib/                            users, menu, premium, admin, time, heartbeat, initdata
+tgcloud/endpoints/admin.js              deploy'dan keyingi diagnostika (Actions)
+tgcloud/lib/                            users, menu, premium, admin, business, time
 test/                                   unit testlar (npm test)
 ```
 
@@ -46,10 +41,9 @@ test/                                   unit testlar (npm test)
 
 GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**:
 
-| Secret | Qayerdan | Majburiy |
-|---|---|---|
-| `TGCLOUD_TOKEN` | BotFather → bot → Serverless → CLI Access | ✅ |
-| `BOT_TOKEN` | BotFather → bot → API Token | faqat heartbeat uchun |
+| Secret | Qayerdan |
+|---|---|
+| `TGCLOUD_TOKEN` | BotFather → bot → Serverless → CLI Access |
 
 So'ng `tgcloud-migration` branch'iga har push (yoki Actions → *Run workflow*) avtomatik:
 test → `tgcloud fetch` → `push` → `migrate --safe` → webhook holati → diagnostika.

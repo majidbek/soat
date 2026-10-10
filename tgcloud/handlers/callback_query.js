@@ -5,7 +5,6 @@ import { getOrCreateUser, getUser, isPremium, refreshProfile, wake } from '../li
 import { editMenu } from '../lib/menu.js';
 import { sendPremiumOffer } from '../lib/premium.js';
 import { TIMEZONES } from '../lib/time.js';
-import { kick } from '../lib/heartbeat.js';
 
 async function handle(cb) {
   const data = cb.data || '';
@@ -67,6 +66,5 @@ export default async function (cb) {
     await handle(cb);
   } finally {
     await wake();
-    await kick().catch(() => {});
   }
 }

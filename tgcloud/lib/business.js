@@ -2,7 +2,6 @@ import { api, db } from 'sdk';
 import { eq } from 'sdk/db';
 import { users } from '../schema.js';
 import { saveConnection, wake } from './users.js';
-import { kick } from './heartbeat.js';
 
 // Business xabarlar: javob bermaymiz (chat.id — mijozniki), faqat
 // noma'lum ulanish egasini aniqlaymiz va update'dan "soat" sifatida foydalanamiz.
@@ -17,6 +16,5 @@ export async function onBusinessUpdate(connectionId) {
     console.warn('business update', e?.description || e);
   } finally {
     await wake();
-    await kick().catch(() => {});
   }
 }

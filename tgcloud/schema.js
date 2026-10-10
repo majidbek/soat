@@ -44,7 +44,7 @@ export const payments = table('payments', {
   chargeIdx: uniqueIndex('uidx_payments_charge').on(t.chargeId),
 }));
 
-// Kalit-qiymat: heartbeat holati, bot tokeni (initData imzolash uchun) va h.k.
+// Kalit-qiymat (hozircha ishlatilmaydi; jadval bazada yaratilgan).
 export const kv = table('kv', {
   key:       text('key').primaryKey(),
   value:     text('value'),

@@ -15,8 +15,6 @@ jobs:
     env:
       # BotFather → bot → Serverless → CLI Access dan olingan token.
       TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
-      # Ixtiyoriy: heartbeat tajribasi uchun (initData imzolash). Faqat bot bazasiga yoziladi.
-      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       ADMIN_CTX: "{ initData: { user: { id: 8808803998 } } }"
     steps:
       - name: Check TGCLOUD_TOKEN secret
@@ -40,11 +38,6 @@ jobs:
       - run: npx tgcloud migrate --safe
       - name: Webhook holati
         run: npx tgcloud webhook --no-pager || true
-      - name: Bot tokenini heartbeat uchun saqlash
-        if: env.BOT_TOKEN != ''
-        run: |
-          npx tgcloud run endpoints/admin "{ action: 'setToken', token: '$BOT_TOKEN' }" --ctx "$ADMIN_CTX" > /dev/null
-          echo "Token saqlandi"
       - name: Runtime diagnostikasi
         run: |
           npx tgcloud run endpoints/admin '{}' --ctx "$ADMIN_CTX"

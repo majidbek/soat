@@ -5,8 +5,7 @@ import { ADMIN_IDS } from '../lib/config.js';
 import { getOrCreateUser, isPremium, refreshProfile, wake, DEFAULT_NAME_FORMAT, DEFAULT_BIO_FORMAT } from '../lib/users.js';
 import { sendMenu } from '../lib/menu.js';
 import { sendPremiumOffer, handleSuccessfulPayment } from '../lib/premium.js';
-import { sendStats, refund, heartbeatCommand } from '../lib/admin.js';
-import { kick } from '../lib/heartbeat.js';
+import { sendStats, refund } from '../lib/admin.js';
 
 const FORMAT_HELP =
   "O'zgaruvchilar: {name} {time} {date} {full} {weekday}\n" +
@@ -42,7 +41,6 @@ async function handle(message) {
   if (ADMIN_IDS.includes(message.from.id)) {
     if (cmd === '/stats') return sendStats(message.chat.id);
     if (cmd === '/refund') return refund(message.chat.id, rest[0]);
-    if (cmd === '/hb') return heartbeatCommand(message.chat.id, rest[0]);
   }
 
   const user = await getOrCreateUser(message.from);
@@ -57,6 +55,5 @@ export default async function (message) {
     await handle(message);
   } finally {
     await wake();
-    await kick().catch(() => {});
   }
 }

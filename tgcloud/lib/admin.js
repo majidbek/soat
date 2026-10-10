@@ -2,10 +2,9 @@ import { api, db } from 'sdk';
 import { and, eq, desc, sql } from 'sdk/db';
 import { users, payments } from '../schema.js';
 import { refreshProfile } from './users.js';
-import { kvGet, kvSet, getStatus, probe, kick, hasTimers } from './heartbeat.js';
 import { getCurrentTime, currentMinute } from './time.js';
 
-// /stats — foydalanuvchilar, Premium, tushum va heartbeat holati.
+// /stats — foydalanuvchilar, Premium, tushum va soat kechikishi.
 export async function sendStats(chatId) {
   const u = await db.get(sql`
     SELECT count(*) AS total,
@@ -19,8 +18,6 @@ export async function sendStats(chatId) {
     WHERE refunded = 0 AND created_at >= unixepoch('now', 'start of month')`);
   const lag = await db.get(sql`SELECT max(${currentMinute()} - last_minute) AS lag FROM users
     WHERE connection_id IS NOT NULL AND clock_enabled = 1`);
-  const hb = await getStatus();
-  const hbMinute = Number((await kvGet('hb_minute')) || 0);
 
   await api.sendMessage({
     chat_id: chatId,
@@ -33,11 +30,6 @@ export async function sendStats(chatId) {
       `Eng katta kechikish: ${lag?.lag ?? 0} daq\n\n` +
       `Shu oy: ${month.n} to'lov, ${month.stars} ⭐\n` +
       `Jami: ${all.n} to'lov, ${all.stars} ⭐\n\n` +
-      `💓 Heartbeat: ${(await kvGet('hb_enabled')) === '1' ? 'yoqilgan' : "o'chiq"}, ` +
-      `setTimeout: ${hasTimers() ? 'bor' : "yo'q"}\n` +
-      `Oxirgi beat: ${hbMinute ? `${currentMinute() - hbMinute} daq oldin` : "hali yo'q"}\n` +
-      (hb.fireError ? `Xato: ${hb.fireError}\n` : '') +
-      (hb.kickError ? `Kick xato: ${hb.kickError}\n` : '') +
       `Server vaqti (Toshkent): ${getCurrentTime().full}`,
   });
 }
@@ -76,29 +68,4 @@ export async function refund(chatId, chargeId) {
   await db.update(users).set({ premiumUntil: 0 }).where(eq(users.tgId, p.tgId)).run();
   await refreshProfile(p.tgId);
   await api.sendMessage({ chat_id: chatId, text: `Qaytarildi: ${p.stars} ⭐ → user ${p.tgId}. Premium o'chirildi.` });
-}
-
-// /hb, /hb on, /hb off — heartbeat tajribasini boshqarish.
-export async function heartbeatCommand(chatId, arg) {
-  if (arg === 'off') {
-    await kvSet('hb_enabled', '0');
-    await api.sendMessage({ chat_id: chatId, text: "💓 Heartbeat o'chirildi. Soat faqat update kelganda yangilanadi." });
-    return;
-  }
-  if (arg === 'on') {
-    if (!hasTimers()) {
-      await api.sendMessage({ chat_id: chatId, text: "❌ Platformada setTimeout yo'q — heartbeat ishlay olmaydi." });
-      return;
-    }
-    const r = await probe();
-    if (!r.ok) {
-      await api.sendMessage({ chat_id: chatId, text: `❌ O'zini chaqirib bo'lmadi: ${r.error}` });
-      return;
-    }
-    await kvSet('hb_enabled', '1');
-    await kick(true);
-    await api.sendMessage({ chat_id: chatId, text: `💓 Heartbeat yoqildi (auth usuli #${r.style}). 2–3 daqiqadan keyin /stats ni tekshiring.` });
-    return;
-  }
-  return sendStats(chatId);
 }
