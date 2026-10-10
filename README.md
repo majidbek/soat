@@ -1,110 +1,60 @@
-# 🕒 Soatli Profil — Telegram Business bot (serverless)
+# 🕒 Soatli Profil — Telegram Serverless bot
 
-Foydalanuvchining Telegram ismi va biosiga **har daqiqada joriy vaqtni** yozib turadigan bot.
-Telegram Business orqali ishlaydi (`setBusinessAccountName` / `setBusinessAccountBio`).
+Foydalanuvchining Telegram ismi (va Premium'da biosi) ga joriy vaqtni yozib turadi.
+Telegram Business orqali ishlaydi. Bot, baza va to'lovlar to'liq
+[Telegram Serverless](https://core.telegram.org/bots/serverless) ustida — tashqi server yo'q.
 
-Eski PHP + MySQL + cron versiyasi **Cloudflare Workers + D1** ga ko'chirildi:
+## Imkoniyatlar
 
-| | Eski (PHP hosting) | Yangi (Cloudflare Workers) |
-|---|---|---|
-| Server | Shared hosting | Serverless, server kerak emas |
-| Baza | MySQL | D1 (SQLite) |
-| Cron | Hosting cron → `cron.php` | Workers Cron Trigger, har daqiqa |
-| Narx | Hosting to'lovi | Bepul tarif yetadi (100k so'rov/kun) |
-| Ko'p foydalanuvchi | Bitta skript ketma-ket | Bo'laklarga bo'linib parallel |
-
-## Nimalar tuzatildi
-
-- Token va DB paroli koddan olib tashlandi → `wrangler secret`.
-- Webhook `secret_token` bilan himoyalangan (begona so'rovlar 403).
-- `update_log.txt` ga hamma update yozilishi olib tashlandi (20 MB+ o'sib, shaxsiy ma'lumot saqlardi).
-- `business_message` da mijozning `chat.id` si egasi deb saqlanardi — tuzatildi.
-- Botni uzganda (`is_enabled: false`) ulanish o'chiriladi, yaroqsiz ulanishlar avtomatik tozalanadi.
-- Telegramga faqat o'zgargan qiymat yuboriladi (ism/bio bir daqiqada bir marta).
-- Bot hech qachon o'rnatmagan bo'lsa, foydalanuvchining biosi o'chirilmaydi.
-- `/start` bosmagan, lekin tugmani bosgan foydalanuvchi ham bazaga qo'shiladi.
-- Ism 64, bio 140 belgidan oshmaydi (Telegram limiti).
-
-## O'rnatish (bir marta)
-
-```bash
-npm install
-npx wrangler login
-
-# 1. Baza yaratish — chiqqan database_id ni wrangler.toml ga qo'ying
-npx wrangler d1 create soat
-npm run db:init
-
-# 2. Maxfiy qiymatlar
-npx wrangler secret put BOT_TOKEN        # @BotFather tokeni
-npx wrangler secret put WEBHOOK_SECRET   # uzun tasodifiy satr, masalan: openssl rand -hex 32
-
-# 3. Deploy
-npm run deploy
-```
-
-Deploydan keyin webhookni o'rnating (brauzerda oching):
-
-```
-https://soat-bot.<subdomain>.workers.dev/setup?secret=<WEBHOOK_SECRET>
-```
-
-Javobda `"webhook":{"ok":true...}` chiqsa — tayyor.
-
-### @BotFather sozlamalari
-
-`/mybots` → bot → **Bot Settings → Business Mode → Turn on**.
-Foydalanuvchi: *Sozlamalar → Telegram Business → Chatbotlar* → botni qo'shadi va
-**«Ismni o'zgartirish»** hamda **«Bioni o'zgartirish»** ruxsatlarini yoqadi.
-
-### O'z domeningizda (ixtiyoriy)
-
-`wrangler.toml` ga qo'shing (domen Cloudflare'da bo'lishi kerak):
-
-```toml
-routes = [{ pattern = "soat.avtora.uz", custom_domain = true }]
-```
-
-## GitHub orqali avtomatik deploy
-
-`main` ga har push → `.github/workflows/deploy.yml` deploy qiladi.
-Repo → *Settings → Secrets and variables → Actions* ga qo'shing:
-
-| Secret | Qayerdan |
+| Bepul | ⭐ Premium — 50 Stars/oy (obuna) |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | dash.cloudflare.com → My Profile → API Tokens → "Edit Cloudflare Workers" shabloni (+ D1 Edit) |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard o'ng panelidagi Account ID |
-| `BOT_TOKEN` | @BotFather |
-| `WEBHOOK_SECRET` | o'zingiz yaratgan tasodifiy satr |
+| Ismdagi soat | Biodagi soat |
+| 12 ta vaqt mintaqasi | +12 mintaqa (jami 24) |
+| Standart format | O'z formati: `/nameformat`, `/bioformat` |
 
-## Eski MySQL bazasidan ko'chirish
+Admin (`lib/config.js` → `ADMIN_IDS`): `/stats`, `/refund [charge_id]`, `/hb [on|off]`.
 
-Eski foydalanuvchilar qayta ulanmasligi uchun: `scripts/mysql-export.sql` ni phpMyAdmin'da ishga tushiring,
-natijani `migrate.sql` ga saqlang va:
+## ⚠️ Cron haqida
 
-```bash
-npx wrangler d1 execute soat --remote --file=migrate.sql
+Serverless'da cron/taymer yo'q. Soat shunday yangilanadi:
+
+1. **Har qanday update kelganda** (`lib/users.js` → `wake`): ulangan foydalanuvchilarning
+   chatlariga kelgan har bir xabar botni uyg'otadi va shu daqiqada yangilanmagan profillar
+   yangilanadi. Kunduzi deyarli har daqiqa; xabar kam bo'lsa — kechikadi.
+2. **Heartbeat (tajriba)** (`lib/heartbeat.js`): `endpoints/tick` o'zini har daqiqada qayta
+   chaqiradi. `setTimeout` va o'z manzilini chaqirish platformada ishlasagina ishlaydi.
+   Ishlamasa, o'zi to'xtaydi; 1-usul baribir ishlayveradi. `/hb on` bilan yoqiladi,
+   `/stats` da holati ko'rinadi.
+
+## Tuzilma
+
+```
+tgcloud/schema.js                       users, payments, kv
+tgcloud/handlers/message.js             /start, /menu, /premium, formatlar, to'lov, admin
+tgcloud/handlers/callback_query.js      menyu tugmalari
+tgcloud/handlers/business_connection.js ulanish / uzish / ruxsatlar
+tgcloud/handlers/business_message.js    (+ edited_, deleted_) — botni uyg'otadi
+tgcloud/handlers/pre_checkout_query.js  to'lovdan oldingi tekshiruv
+tgcloud/endpoints/tick.js               heartbeat zanjiri
+tgcloud/endpoints/ping.js               heartbeat auth tekshiruvi
+tgcloud/endpoints/admin.js              diagnostika, bot tokenini saqlash (Actions)
+tgcloud/lib/                            users, menu, premium, admin, time, heartbeat, initdata
+test/                                   unit testlar (npm test)
 ```
 
-So'ng webhookni yangi manzilga `/setup` orqali o'tkazing va hostingdagi cron'ni o'chiring.
+## Deploy (telefondan, GitHub Actions)
 
-## Lokal test
+GitHub → repo → **Settings → Secrets and variables → Actions → New repository secret**:
 
-```bash
-printf 'BOT_TOKEN=...\nWEBHOOK_SECRET=test\n' > .dev.vars
-npm run db:init:local
-npm run dev
-# cron'ni qo'lda ishga tushirish:
-curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"
-```
+| Secret | Qayerdan | Majburiy |
+|---|---|---|
+| `TGCLOUD_TOKEN` | BotFather → bot → Serverless → CLI Access | ✅ |
+| `BOT_TOKEN` | BotFather → bot → API Token | faqat heartbeat uchun |
 
-## Masshtab
+So'ng `tgcloud-migration` branch'iga har push (yoki Actions → *Run workflow*) avtomatik:
+test → `tgcloud fetch` → `push` → `migrate --safe` → webhook holati → diagnostika.
 
-Cron har daqiqada faol foydalanuvchilarni `BATCH_SIZE` (standart 20) talik bo'laklarga bo'lib,
-har bir bo'lakni alohida worker chaqiruvida (`SELF` service binding) bajaradi —
-shu tufayli bepul tarifdagi 50 subrequest limitiga urilmaydi.
-Workers Paid tarifida `BATCH_SIZE` ni 200–400 gacha oshirish mumkin.
+BotFather'da: **Bot Settings → Business Mode → On**.
 
-## Format o'zgaruvchilari
-
-`username_format` va `bio_format` da: `{name}`, `{time}`, `{date}`, `{full}`, `{weekday}`.
+Foydalanuvchi: *Sozlamalar → Telegram Business → Chatbotlar* → botni qo'shadi va
+«Ismni o'zgartirish», «Bioni o'zgartirish» ruxsatlarini yoqadi.

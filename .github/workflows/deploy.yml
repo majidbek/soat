@@ -1,41 +1,47 @@
-name: Deploy to Cloudflare Workers
+name: Deploy to Telegram Serverless
 
 on:
   push:
-    branches: [main]
+    branches: [tgcloud-migration]
   workflow_dispatch:
+
+concurrency:
+  group: tgcloud-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # BotFather → bot → Serverless → CLI Access dan olingan token.
+      TGCLOUD_TOKEN: ${{ secrets.TGCLOUD_TOKEN }}
+      # Ixtiyoriy: heartbeat tajribasi uchun (initData imzolash). Faqat bot bazasiga yoziladi.
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      ADMIN_CTX: "{ initData: { user: { id: 8808803998 } } }"
     steps:
+      - name: Check TGCLOUD_TOKEN secret
+        run: |
+          if [ -z "$TGCLOUD_TOKEN" ]; then
+            echo "::error::TGCLOUD_TOKEN secret topilmadi. GitHub → Settings → Secrets and variables → Actions ga qo'shing."
+            exit 1
+          fi
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
       - run: npm ci
-
-      - name: D1 sxemasini qo'llash (idempotent)
-        run: npx wrangler d1 execute soat --remote --file=schema.sql
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Deploy
-        run: npx wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Secretlarni yangilash
-        run: |
-          echo "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
-          echo "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+      - name: Unit testlar
+        run: npm test
+      # Bulutdagi holatni yuklab olamiz, so'ng faqat o'zgarganlarni yuboramiz
+      - run: npx tgcloud fetch
+      - run: npx tgcloud push
+      # Bazaga faqat xavfsiz o'zgarishlarni (yangi jadval/ustun) qo'llaymiz
+      - run: npx tgcloud migrate --safe
+      - name: Webhook holati
+        run: npx tgcloud webhook --no-pager || true
+      - name: Bot tokenini heartbeat uchun saqlash
+        if: env.BOT_TOKEN != ''
+        run: npx tgcloud run endpoints/admin "{ action: 'setToken', token: '$BOT_TOKEN' }" --ctx "$ADMIN_CTX" > /dev/null
+      - name: Runtime diagnostikasi
+        run: npx tgcloud run endpoints/admin '{}' --ctx "$ADMIN_CTX"

@@ -1,6 +1,2 @@
 node_modules/
-.wrangler/
-.dev.vars
-*.log
-update_log.txt
-migrate.sql
+.tgcloud/

@@ -1,16 +1,16 @@
 {
-  "name": "soat-bot",
-  "version": "2.0.0",
+  "name": "soat",
+  "version": "3.0.0",
   "private": true,
-  "description": "Soatli profil — Telegram Business bot (Cloudflare Workers + D1, serverless)",
+  "description": "Soatli Profil: Telegram Business bot on Telegram Serverless",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --test-scheduled",
-    "deploy": "wrangler deploy",
-    "db:init": "wrangler d1 execute soat --remote --file=schema.sql",
-    "db:init:local": "wrangler d1 execute soat --local --file=schema.sql"
+    "deploy": "tgcloud push",
+    "migrate": "tgcloud migrate",
+    "status": "tgcloud status",
+    "test": "node --test test/*.test.js"
   },
   "devDependencies": {
-    "wrangler": "4.149.0"
+    "@tgcloud/cli": "0.2.0"
   }
 }
